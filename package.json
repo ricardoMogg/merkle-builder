@@ -1,0 +1,36 @@
+{
+  "name": "merkle-builder",
+  "version": "1.0.0",
+  "description": "merkle tree builder",
+  "main": "index.ts",
+  "scripts": {
+    "build": "npx tsc",
+    "testgen": "npx ts-node tst/test_gen.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ricardoMogg/merkle-builder.git"
+  },
+  "keywords": [
+    "merkle",
+    "web3"
+  ],
+  "devDependencies": {
+    "@types/pg": "^8.11.6",
+    "@types/stream-json": "^1.7.7",
+    "ethers": "^6.11.1",
+    "merkletreejs": "^0.3.11",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "pg": "^8.12.0",
+    "stream-json": "^1.8.0"
+  },
+  "author": "ricardomogg",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ricardoMogg/merkle-builder/issues"
+  },
+  "homepage": "https://github.com/ricardoMogg/merkle-builder#readme"
+}

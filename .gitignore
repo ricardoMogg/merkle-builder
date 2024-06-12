@@ -1,0 +1,38 @@
+
+# === Rule for dotfiles ===
+# Ignore all dotfiles.
+.*
+
+!tsconfig.json
+!.cpplint
+!.editorconfig
+!.eslintignore
+!.eslintrc.js
+!.eslintrc.yaml
+!.gitattributes
+!.github
+!.gitignore
+!.gitkeep
+!.gitpod.yml
+!.env.example
+
+
+
+# === Rules for `node_modules` ===
+!**/node_modules/**
+/node_modules
+/tools/doc/node_modules
+/tools/clang-format/node_modules
+
+
+/gcovr
+/build
+/coverage
+/fs
+
+# === Global Rules ===
+# Keep last to avoid being excluded
+*.pyc
+__pycache__
+.DS_Store
+*~
