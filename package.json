@@ -1,11 +1,11 @@
 {
   "name": "merkle-builder",
-  "version": "1.0.0",
+  "version": "1.0.10",
   "description": "merkle tree builder",
-  "main": "index.ts",
+  "main": "dist/index.js",
+  "types": "types/index.d.ts",
   "scripts": {
-    "build": "npx tsc",
-    "testgen": "npx ts-node tst/test_gen.ts"
+    "build": "tsc"
   },
   "repository": {
     "type": "git",

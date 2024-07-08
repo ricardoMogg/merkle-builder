@@ -29,6 +29,8 @@
 /build
 /coverage
 /fs
+/prisma
+/dist
 
 # === Global Rules ===
 # Keep last to avoid being excluded
