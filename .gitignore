@@ -31,6 +31,7 @@
 /fs
 /prisma
 /dist
+/types
 
 # === Global Rules ===
 # Keep last to avoid being excluded
