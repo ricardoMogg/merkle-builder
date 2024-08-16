@@ -1,10 +1,5 @@
-import {
-  ChunkedMerkleTree,
-  treeChunk,
-  treeFromChunks,
-} from "./ChunkedMerkleTree";
+import { ChunkedMerkleTree } from "./ChunkedMerkleTree";
 import { streamFile } from "../utils/streamer";
-import { getMerkleRoot } from "./MerkleUtils";
 
 export async function buildMerkleTreeFromJson(
   filename: string,
@@ -13,7 +8,6 @@ export async function buildMerkleTreeFromJson(
 ): Promise<ChunkedMerkleTree> {
   let addresses: string[] = [];
   let tree: ChunkedMerkleTree = new ChunkedMerkleTree(chunkSize);
-
   return new Promise((resolve, reject) => {
     streamFile(
       filename,
@@ -21,18 +15,21 @@ export async function buildMerkleTreeFromJson(
       (data: { value: any }) => {
         addresses.push(data.value[addressFieldName]);
         if (addresses.length >= chunkSize) {
-          console.log("Processing chunk...");
-          processChunk(addresses, tree);
+          processNewChunk(addresses, tree, false);
           addresses = []; // Clear the array for the next chunk
         }
       },
       // on end
       () => {
         if (addresses.length > 0) {
-          processChunk(addresses, tree);
+          processNewChunk(addresses, tree, true);
+        } else {
+          tree.regenerateTopTreeRoot();
         }
-        processFinalTree(tree.chunkRoots, tree);
-        console.log("Finished processing tree...");
+        console.log(
+          "Finished processing tree... root:",
+          tree.getMerkleTreeRoot()
+        );
         resolve(tree);
       },
       // on error
@@ -41,16 +38,11 @@ export async function buildMerkleTreeFromJson(
   });
 }
 
-function processChunk(chunk: string[], tree: ChunkedMerkleTree) {
-  const chunkTree = treeChunk(chunk);
-  const chunkRoot = chunkTree.getRoot();
-  tree.chunkRoots.push(chunkRoot);
-  tree.chunkTrees.push(chunkTree);
-  console.log("Processed chunk, root:", chunkRoot.toString("hex"));
-}
-
-function processFinalTree(roots: Buffer[], tree: ChunkedMerkleTree) {
-  const finalTree = treeFromChunks(roots);
-  tree.finalTree = finalTree;
-  console.log("Final Merkle root:", getMerkleRoot(finalTree));
+function processNewChunk(
+  chunk: string[],
+  tree: ChunkedMerkleTree,
+  regenerateTopTreeRoot: boolean
+) {
+  const chunkTree = tree.addTreeChunk(chunk, regenerateTopTreeRoot);
+  console.log("Processed chunk, root:", chunkTree.getRoot().toString("hex"));
 }

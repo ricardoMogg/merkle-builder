@@ -1,55 +1,79 @@
 import { keccak256 } from "ethers";
 import { MerkleTree } from "merkletreejs";
-import { getMerkleRoot } from "./MerkleUtils";
+import { getMerkleRoot, hashLeaf } from "./MerkleUtils";
 
 export class ChunkedMerkleTree {
   finalTree: MerkleTree;
   chunkRoots: Buffer[];
   chunkTrees: MerkleTree[];
+  addressChunkLocation: Map<string, number>;
   chunkSize: number;
+  cachedProofs: Map<number, string[]>;
 
   constructor(chunkSize: number) {
     this.chunkSize = chunkSize;
     this.finalTree = new MerkleTree([]);
     this.chunkRoots = [];
     this.chunkTrees = [];
+    this.addressChunkLocation = new Map<string, number>();
+    this.cachedProofs = new Map<number, string[]>();
   }
 
   getMerkleTreeProof(address: string, tree: ChunkedMerkleTree): string[] {
     const hashedAddress = Buffer.from(keccak256(address).slice(2), "hex");
     let finalProof: string[] = [];
 
-    for (let i = 0; i < tree.chunkTrees.length; i++) {
-      const t = tree.chunkTrees[i];
-      const proof = t
-        .getProof(hashedAddress)
+    const chunkLocation = this.addressChunkLocation.get(address);
+    const subTree = tree.chunkTrees[chunkLocation!];
+    const subProof = subTree
+      .getProof(hashedAddress)
+      .map((p) => "0x" + p.data.toString("hex"));
+    if (subProof.length === 0) {
+      console.log("No proof found for address", address);
+      return [];
+    }
+
+    const cachedProof = this.cachedProofs.get(chunkLocation!);
+    if (cachedProof) {
+      finalProof = subProof.concat(cachedProof);
+    } else {
+      const chunkRootProof = tree.finalTree
+        .getProof(this.chunkRoots[chunkLocation!])
         .map((p) => "0x" + p.data.toString("hex"));
-      if (proof.length > 0) {
-        const chunkRootProof = tree.finalTree
-          .getProof(tree.chunkRoots[i])
-          .map((p) => "0x" + p.data.toString("hex"));
-        finalProof = proof.concat(chunkRootProof);
-        break;
-      }
+      this.cachedProofs.set(chunkLocation!, chunkRootProof);
+      finalProof = subProof.concat(chunkRootProof);
     }
 
     return finalProof.length > 0 ? finalProof : [];
   }
 
-  getMerkleTreeRoot(tree: ChunkedMerkleTree) {
-    return getMerkleRoot(tree.finalTree);
+  getMerkleTreeRoot() {
+    return getMerkleRoot(this.finalTree);
   }
-}
+  addTreeChunk(
+    addresses: string[],
+    regenerateTopTreeRoot: boolean
+  ): MerkleTree {
+    const currentChunks = this.chunkTrees.length;
+    const leaves = addresses.map(hashLeaf);
+    const newChunk = new MerkleTree(leaves, keccak256, { sortPairs: true });
+    this.chunkRoots.push(newChunk.getRoot());
+    this.chunkTrees.push(newChunk);
+    for (let i = 0; i < addresses.length; i++) {
+      this.addressChunkLocation.set(addresses[i], currentChunks);
+    }
+    if (regenerateTopTreeRoot) {
+      this.finalTree = new MerkleTree(this.chunkRoots, keccak256, {
+        sortPairs: true,
+      });
+    }
+    return newChunk;
+  }
 
-// Generate a Merkle tree for a chunk of addresses
-export function treeChunk(addresses: string[]): MerkleTree {
-  const leaves = addresses.map((addr) =>
-    Buffer.from(keccak256(addr).slice(2), "hex")
-  );
-  return new MerkleTree(leaves, keccak256, { sortPairs: true });
-}
-
-// Generate a Merkle tree from the roots of chunk trees
-export function treeFromChunks(chunkRoots: Buffer[]): MerkleTree {
-  return new MerkleTree(chunkRoots, keccak256, { sortPairs: true });
+  regenerateTopTreeRoot(): MerkleTree {
+    this.finalTree = new MerkleTree(this.chunkRoots, keccak256, {
+      sortPairs: true,
+    });
+    return this.finalTree;
+  }
 }
