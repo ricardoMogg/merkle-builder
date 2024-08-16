@@ -19,12 +19,12 @@ export class ChunkedMerkleTree {
     this.cachedProofs = new Map<number, string[]>();
   }
 
-  getMerkleTreeProof(address: string, tree: ChunkedMerkleTree): string[] {
+  getMerkleTreeProof(address: string): string[] {
     const hashedAddress = Buffer.from(keccak256(address).slice(2), "hex");
     let finalProof: string[] = [];
 
     const chunkLocation = this.addressChunkLocation.get(address);
-    const subTree = tree.chunkTrees[chunkLocation!];
+    const subTree = this.chunkTrees[chunkLocation!];
     const subProof = subTree
       .getProof(hashedAddress)
       .map((p) => "0x" + p.data.toString("hex"));
@@ -37,7 +37,7 @@ export class ChunkedMerkleTree {
     if (cachedProof) {
       finalProof = subProof.concat(cachedProof);
     } else {
-      const chunkRootProof = tree.finalTree
+      const chunkRootProof = this.finalTree
         .getProof(this.chunkRoots[chunkLocation!])
         .map((p) => "0x" + p.data.toString("hex"));
       this.cachedProofs.set(chunkLocation!, chunkRootProof);
@@ -50,10 +50,7 @@ export class ChunkedMerkleTree {
   getMerkleTreeRoot() {
     return getMerkleRoot(this.finalTree);
   }
-  addTreeChunk(
-    addresses: string[],
-    regenerateTopTreeRoot: boolean
-  ): MerkleTree {
+  addTreeChunk(addresses: string[], buildTree: boolean): MerkleTree {
     const currentChunks = this.chunkTrees.length;
     const leaves = addresses.map(hashLeaf);
     const newChunk = new MerkleTree(leaves, keccak256, { sortPairs: true });
@@ -62,7 +59,7 @@ export class ChunkedMerkleTree {
     for (let i = 0; i < addresses.length; i++) {
       this.addressChunkLocation.set(addresses[i], currentChunks);
     }
-    if (regenerateTopTreeRoot) {
+    if (buildTree) {
       this.finalTree = new MerkleTree(this.chunkRoots, keccak256, {
         sortPairs: true,
       });
@@ -70,7 +67,7 @@ export class ChunkedMerkleTree {
     return newChunk;
   }
 
-  regenerateTopTreeRoot(): MerkleTree {
+  buildTree(): MerkleTree {
     this.finalTree = new MerkleTree(this.chunkRoots, keccak256, {
       sortPairs: true,
     });

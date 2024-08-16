@@ -24,7 +24,7 @@ export async function buildMerkleTreeFromJson(
         if (addresses.length > 0) {
           processNewChunk(addresses, tree, true);
         } else {
-          tree.regenerateTopTreeRoot();
+          tree.buildTree();
         }
         console.log(
           "Finished processing tree... root:",
